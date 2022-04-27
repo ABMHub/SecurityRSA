@@ -67,7 +67,7 @@ def MillerRabin(n : int, k : int) -> bool:
     return False
   return True
 
-def generateKey(k : int = 2) -> List[int]:
+def generateKey(k : int = 2, key_length : int = 1024) -> List[int]:
   """Retorna uma lista com k primos aleatórios de 1024 bits
 
   Args:
@@ -81,7 +81,7 @@ def generateKey(k : int = 2) -> List[int]:
   for i in range(k):
     flag = False
     while flag is False:
-      num = secrets.randbits(1024)
+      num = secrets.randbits(key_length)
       flag = MillerRabin(num, 10)
       
     ret.append(num)

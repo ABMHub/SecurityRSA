@@ -10,7 +10,7 @@ class TestKeyGen:
     assert twoFactors(18) == (1, 9)
     assert twoFactors(20) == (2, 5)
 
-  def testMillerRabinPrime(self):
+  def test_MillerRabinPrime(self):
     assert MillerRabin(421, 1000) == True
     assert MillerRabin(3323, 1000) == True
     assert MillerRabin(1667, 1000) == True
@@ -23,7 +23,7 @@ class TestKeyGen:
     assert MillerRabin(7583, 1000) == True
     assert MillerRabin(7919, 1000) == True
 
-  def testMillerRabinCompost(self):
+  def test_MillerRabinCompost(self):
     assert MillerRabin(3333, 1000) == False
     assert MillerRabin(3519, 1000) == False
     assert MillerRabin(3771, 1000) == False
