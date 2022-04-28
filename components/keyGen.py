@@ -2,8 +2,7 @@ from secrets import SystemRandom
 from typing import List
 from typing import Tuple
 import secrets
-
-from numpy import append
+from math import gcd
 
 BITSTREAM = 16
 def twoFactors(n : int, bitNumber : int = BITSTREAM) -> Tuple[int, int]:
@@ -83,7 +82,27 @@ def generateKey(k : int = 2, key_length : int = 1024) -> List[int]:
     while flag is False:
       num = secrets.randbits(key_length)
       flag = MillerRabin(num, 10)
+      # evita que retorne dois numeros iguais
+      if flag is True and num in ret and num >> 1023 != 1:
+        flag = False
       
     ret.append(num)
   return ret
 
+def generateE(maxValue : int) -> int:
+  """Gera um número no máximo "maxValue" e maior que 1024 bits
+
+  Args:
+      maxValue (int): teto para a geração do número primo
+
+  Returns:
+      int: número primo aleatório menor que "maxValue" e coprimo deste
+  """
+  flag = False
+  while flag is False:
+    num = secrets.randbelow(maxValue)
+    if num >> 1024 > 0:   # tem que ser maior que p ou q
+      flag = True         # sai do loop e retorna num
+
+  return num
+      

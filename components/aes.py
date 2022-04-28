@@ -5,7 +5,6 @@ from typing import List
 from click import FileError
 from jsonschema import ValidationError
 import numpy as np
-from regex import F
 from components.keyGen import generateKey
 
 class Aes:
