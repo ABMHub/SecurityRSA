@@ -3,6 +3,8 @@ from typing import List
 from typing import Tuple
 import secrets
 from math import gcd
+from egcd import egcd
+import time
 
 BITSTREAM = 16
 def twoFactors(n : int, bitNumber : int = BITSTREAM) -> Tuple[int, int]:
@@ -101,8 +103,6 @@ def generateE(maxValue : int) -> int:
   flag = False
   while flag is False:
     num = secrets.randbelow(maxValue)
-    if num >> 1024 > 0:   # tem que ser maior que p ou q
-      flag = True         # sai do loop e retorna num
-
+    flag = egcd(maxValue, num)[0] == 1         # sai do loop e retorna num
   return num
       
