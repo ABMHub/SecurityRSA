@@ -6,7 +6,8 @@ from components.keyGen import MillerRabin, generateKey
 import numpy as np
 from components.rsa import RSA
 
-rsa = RSA()
+
+
 
 # message = "Bom dia o dia estaahahahhs"
 # print(message)
