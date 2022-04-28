@@ -1,19 +1,33 @@
 from email import message
+from encodings import utf_8
+from types import TracebackType
 from typing import List
 from click import FileError
 from jsonschema import ValidationError
 import numpy as np
 from regex import F
 from components.keyGen import generateKey
+
 class Aes:
     """ 
         Métodos referentes a cifra AES com chaves de 128 bits e suporte ao modo CTR.
     """
-    def __init__(self) -> None:
+    def __init__(self, key : int = generateKey(1, 128)[0]) -> None:
+        """_summary_
+
+        Args:
+            key (int, optional): Chave do AES. Se não informada, uma key é gerada aleatoriamente generateKey(1, 128)[0].
+        """
         self.NUMBER_OF_BYTES = 16
         self.NUMBER_OF_KEYS = 10
-        self.key = None
-        pass
+        
+        try:
+            key.to_bytes(self.NUMBER_OF_BYTES, 'big')
+        except:
+            raise ValidationError("AES suporta apenas chaves de 128 bits")
+
+        self.key = key
+        self.nonce_history = {}
 
     def SubBytes(self, state : List[List[bytes]]) -> List[List[bytes]]:
         """ Realiza a transformação não linear da matriz de bytes utilizando a matriz s-box.
@@ -99,6 +113,27 @@ class Aes:
 
         return state
 
+    def __numberToMatrix128(self, number : int) -> List[List[bytes]]:
+        """Converte um número de 128 bits para uma matriz de 4x4 bytes
+
+        Args:
+            number (int): número de 128 bits
+
+        Returns:
+            List[List[bytes]]: matriz de 4x4 bytes
+        """
+
+        try:
+            bytes_array = number.to_bytes(self.NUMBER_OF_BYTES, 'big')
+        except:
+            raise ValidationError("AES suporta apenas chaves de 128 bits")
+
+        bytes_array = np.array(list(bytes_array))
+        bytes_array.shape = (4, 4)
+        bytes_array = bytes_array.transpose()
+
+        return bytes_array
+
     def GenerateRoundKey(self, key : int, iterations : int = 10) -> List[List[bytes]]:
         """Gera chaves de rodada
 
@@ -109,10 +144,7 @@ class Aes:
             List[List[List[bytes]]]: Lista de matrizes de 4x4 bytes que representam números de 128 bits.
         """
 
-        bytes_array = key.to_bytes(self.NUMBER_OF_BYTES, 'big')
-        bytes_array = np.array(list(bytes_array))
-        bytes_array.shape = (4, 4)
-        bytes_array = bytes_array.transpose()
+        bytes_array = self.__numberToMatrix128(key)
 
         if np.size(bytes_array) != self.NUMBER_OF_BYTES:
             raise ValidationError("AES suporta apenas chaves de 128 bits")
@@ -137,18 +169,25 @@ class Aes:
 
         return np.array(keys)
 
-    def Cipher(self, state : List[List[bytes]], key : int) -> List[List[bytes]]:
+    def AesCipher(self, state : List[List[bytes]]) -> List[List[bytes]]:
         """ Aplica a cifra AES em uma sequência de bytes que correspondem a uma mensagem.
 
         Args:
-            state (List[bytes]): Sequência de bytes que correspondem a mensagem.
-            key (int): Chave de 128 bits
+            state (List[List[bytes]]): matriz de 4x4 bytes de um número de 128 bits.
 
         Returns:
-            List[bytes]: Sequência de bytes cifrada usando AES
+            (List[List[bytes]]): matriz de 4x4 bytes de um número de 128 bits cifrada com AES.
         """
 
-        round_keys = self.GenerateRoundKey(key)
+        if state.shape != (4,4):
+            raise ValueError("Aes suporta apenas matrizes de 4x4 bytes!")
+            
+        for i in range(4):
+            for j in range(4):
+                if state[i][j] > 255:
+                    raise ValueError("Aes suporta apenas matrizes de 4x4 bytes!")
+
+        round_keys = self.GenerateRoundKey(self.key)
         state = self.AddRoundKey(state, round_keys[0])
 
         for i in range(self.NUMBER_OF_KEYS - 1):
@@ -163,8 +202,68 @@ class Aes:
 
         return state        
 
-    def ctr():
-        pass
+    def CtrCipher(self, plaintext : str, nonce : int = generateKey(1, 96)[0]) -> List[List[bytes]]:
+        """ Aplica AES no modo CTR em plaintext
+
+        Args:
+            plaintext (str, utf8): string que será cifrada
+            nonce (int, optional): nonce que será usado na cifragem. Se não for informado, o algoritmo irá gerar um.
+        Returns:
+            List[List[bytes]]: lista de criptograma em blocos de 128 bits. O último bloco pode ter menos de 128 bits
+        """
+        
+        while nonce in self.nonce_history:
+            nonce = generateKey(1, 96)[0]
+        
+        self.nonce_history[nonce] = True
+
+        ctr_blk = (nonce << 32) + 1
+
+        pt_bytes = np.array(list(bytes(plaintext, 'utf-8')))
+        pt = pt_bytes[0 : np.size(pt_bytes) - (np.size(pt_bytes) % 128)]
+        pt.shape = (np.size(pt)//16, 16)
+        pt_end = pt_bytes[-(np.size(pt_bytes) % 128):]
+        
+        ct = []
+
+        for i in pt:
+            counter_block = self.__numberToMatrix128(ctr_blk)
+            ct.append(np.bitwise_xor(i, self.AesCipher(counter_block).transpose().flatten()))
+            ctr_blk += 1
+        
+        if np.size(pt_end) != 128:
+            counter_block = self.__numberToMatrix128(ctr_blk)
+            trunc_block = self.AesCipher(counter_block).transpose().flatten()[:np.size(pt_end)]
+            ct.append(np.bitwise_xor(pt_end, trunc_block))
+
+        return ct, nonce 
+
+    def CtrDecipher(self, cipher_text : List[List[bytes]], nonce : int) -> str:
+        """ Decifra uma lista de criptogramas em blocos de 128 bits, o último bloco pode ter menos de 128 bits.
+
+        Args:
+            cipher_text (List[List[bytes]]): Lista de criptogramas em que cada elemento é um array numpy que contém 128 bits, o último elemento pode ter menos de 128 bits
+            nonce (int): nonce utilizado durante a cifragem
+
+        Returns:
+            str: texto decifrado
+        """
+        ctr_blk = (nonce << 32) + 1
+
+        pt = []
+
+        for i in cipher_text[:-1]:
+            # i é uma array numpy
+
+            counter_block = self.__numberToMatrix128(ctr_blk)
+            pt += list(np.bitwise_xor(i, self.AesCipher(counter_block).transpose().flatten()))
+            ctr_blk += 1
+
+        counter_block = self.__numberToMatrix128(ctr_blk)
+        trunc_block = self.AesCipher(counter_block).transpose().flatten()[:np.size(cipher_text[-1])]
+        pt += list(np.bitwise_xor(cipher_text[-1], trunc_block))
+
+        return bytes(pt).decode('utf-8')
     
     def GaloisMultiply(self, a : int, b : int) -> int:
         """Realiza a multiplicação de a por b no corpo de galois.
@@ -179,7 +278,7 @@ class Aes:
         Returns:
             int: resultado da multiplicação.
         """
-        if a < 0 or b < 0 or a > 256 or b > 3:
+        if a < 0 or b < 0 or a > 255 or b > 3:
             raise ValueError("Multiplicação inválida no corpo de galois!")
 
         if b == 1: return a

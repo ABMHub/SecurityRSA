@@ -86,7 +86,7 @@ class TestAes:
         result = aes.AddRoundKey(teste1, teste2)
         assert np.array_equal(result, correct_result)
 
-    def test_Cipher(self):
+    def test_AesCipher(self):
         message = np.array([
                 [0x32, 0x88, 0x31, 0xe0],
                 [0x43, 0x5a, 0x31, 0x37],
@@ -102,9 +102,9 @@ class TestAes:
                         ])
         key = 57811460909138771071931939740208549692
 
-        aes = Aes()
+        aes = Aes(key=key)
 
-        result = aes.Cipher(message, key)
+        result = aes.AesCipher(message)
 
         print("Correto\n", correct_result)
         print("\nObtido\n", result)
@@ -186,6 +186,53 @@ class TestAes:
         assert teste == 203
         teste = aes.GaloisMultiply(6, 3)
         assert teste == 10
+    
+    def test_CtrCipher(self):
+        message = "Single block msg"
+        key = 231827352951625350095415684694321656734
+        nonce = 885443715538058477568
+        correct_result = np.array([0xE4, 0x09, 0x5D, 0x4F, 0xB7, 0xA7, 0xB3, 0x79, 0x2D, 0x61, 0x75, 0xA3, 0x26, 0x13, 0x11, 0xB8])
+        
+        aes = Aes(key=key)
+        result = aes.CtrCipher(message, nonce)[0]
+
+        print("Correto\n", correct_result)
+        print("\nObtido\n", result)
+
+        assert np.array_equal(result[0], correct_result)
+        
+
+    def test_CtrDecipher(self):
+        correct_result = "Single block msg"
+        key = 231827352951625350095415684694321656734
+        nonce = 885443715538058477568
+        cripto = [np.array([0xE4, 0x09, 0x5D, 0x4F, 0xB7, 0xA7, 0xB3, 0x79, 0x2D, 0x61, 0x75, 0xA3, 0x26, 0x13, 0x11, 0xB8])]
+        
+        aes = Aes(key=key)
+        result = aes.CtrDecipher(cripto, nonce)
+
+        print("Correto\n", correct_result)
+        print("\nObtido\n", result)
+
+        assert result == correct_result
+
+    def test_CtrCipherDecipher(self):
+        # message = "Single block msg"
+        message = "Como este artigo nos auxiliará: o assunto principal do artigo é justamente o uso de aplicativos para o ensino de linguagens. O foco do artigo gira em torno de linguagens faladas, então nós precisaremos adaptar para uma linguagem de sinais, contudo acreditamos que o modelo que o artigo sugere será útil para termos um norte quanto a como apresentar os exercícios para o usuário. "
+        key = 231827352951625350095415684694321656734
+        nonce = 48
+        correct_result = np.array([0xE4, 0x09, 0x5D, 0x4F, 0xB7, 0xA7, 0xB3, 0x79, 0x2D, 0x61, 0x75, 0xA3, 0x26, 0x13, 0x11, 0xB8])
+        
+        aes = Aes(key=key)
+        ct, n = aes.CtrCipher(message, nonce)
+
+        pt = aes.CtrDecipher(ct, n)
+
+        print("Correto\n", message)
+        print("\nObtido\n", pt)
+
+        assert pt == message
+ 
 
         
 
