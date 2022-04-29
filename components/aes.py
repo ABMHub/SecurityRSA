@@ -1,8 +1,4 @@
-from email import message
-from encodings import utf_8
-from types import TracebackType
-from typing import List
-from click import FileError
+from typing import List, Tuple
 from jsonschema import ValidationError
 import numpy as np
 from components.keyGen import generateKey
@@ -201,7 +197,7 @@ class Aes:
 
         return state        
 
-    def CtrCipher(self, plaintext : str, nonce : int = generateKey(1, 96)[0]) -> List[List[bytes]]:
+    def CtrCipher(self, plaintext : str, nonce : int = generateKey(1, 96)[0]) -> Tuple[List[List[bytes]], int]:
         """ Aplica AES no modo CTR em plaintext
 
         Args:
@@ -209,6 +205,7 @@ class Aes:
             nonce (int, optional): nonce que será usado na cifragem. Se não for informado, o algoritmo irá gerar um.
         Returns:
             List[List[bytes]]: lista de criptograma em blocos de 128 bits. O último bloco pode ter menos de 128 bits
+            int: nonce utilizado durante a cifragem
         """
         
         while nonce in self.nonce_history:

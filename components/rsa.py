@@ -30,6 +30,9 @@ class RSA:
     Args:
         input_bytes (List[bytes]): lista de bytes representando a mensagem ou criptograma
         cipherKey (Tuple[int, int]): chave de cifra, pode ser a chave pública ou privada
+
+    Returns:
+        (List[int]): Lista de inteiros em que cada elemento corresponde a um byte cifrado. Cada elemento pode ocupar mais de um byte de memória. 
     """
     cryptogram = []
     for i in input_bytes:
@@ -38,7 +41,7 @@ class RSA:
     return cryptogram
 
   @staticmethod
-  def String2IntList(plainText : str) -> bytes:
+  def String2IntList(plainText : str) -> List[int]:
     """Converte string para bytes
 
     Args:
@@ -50,7 +53,7 @@ class RSA:
     return list(bytes(plainText, 'utf-8'))
 
   @staticmethod
-  def IntList2String(criptogram : bytes) -> str:
+  def IntList2String(criptogram : List[int]) -> str:
     """Converte bytes para string
 
     Args:
@@ -98,16 +101,20 @@ class RSA:
     assert len(a) == len(b)
     return bytes(c ^ d for c, d in zip(a, b))
 
-  def OAEPCipher(self, cipherKey : Tuple[int, int], message : bytes, label : str = "", seed : int = generateKey(1, 256)[0]) -> bytes:
-    """_summary_
+  def OAEPCipher(self, cipherKey : Tuple[int, int], message : bytes, label : str = "", seed : int = generateKey(1, 256)[0]) -> List[int]:
+    """ Aplica OAEP na mensagem e cifra usando a RSA com a chave cipherKey
 
     Args:
-        publicKey (Tuple[int, int]): _description_
-        message (bytes): _description_
-        label (str, optional): _description_. Defaults to "".
+        cipherKey (Tuple[int, int]): chave utilizada na cifragem, pode ser tanto a pública quanto a privada.
+        message (bytes): aquilo que será cifrado.
+        label (str, optional): label para verificação de autenticidade, não adiciona mais segurança ao resultado. Vale "" se não informada.
+        seed (int, optional): semente utilizada para a geração do data block. Se não informada o programa gera uma aleatoriamente
+
+    Raises:
+        ValueError: Mensagem não respeita o tamanho máximo (190 bytes para n 2048 e sha-3 de 256 bits)
 
     Returns:
-        bytes: _description_
+        List[int]: Lista com os bytes cifrados. Cada elemento pode ocupar mais de um byte.
     """
     k = 256               # tamanho em bytes do módulo rsa (2048 bits)
     hlen = 32             # tamanho do output da hash em bytes
@@ -127,11 +134,25 @@ class RSA:
     maskedSeed = self.__xorBytes(seed, seedMask)
 
     em = (0).to_bytes(1, "big") + maskedSeed + maskedDb
-    print(em)
 
     return RSA.RSACipherDecipher(list(em), cipherKey)
 
-  def OAEPDecipher(self, cipherKey : Tuple[int, int], cryptogram : bytes, label : str = "") -> bytes:
+  def OAEPDecipher(self, cipherKey : Tuple[int, int], cryptogram : List[int], label : str = "") -> bytes:
+    """ Decifra um criptograma utilizando a chave cipherKey e desfaz o OAEP
+
+    Args:
+        cipherKey (Tuple[int, int]): chave utilizada na decifragem, pode ser tanto a pública quanto a privada.
+        cryptogram (List[int]): lista de bytes que serão decifrados
+        label (str, optional): label para verificação de autenticidade, não adiciona mais segurança ao resultado. Vale "" se não informada.
+
+    Raises:
+        ValueError: Wrong size for cryptogram 
+        ValueError: Decryption error
+
+    Returns:
+        bytes: bytes decifrados
+    """
+    
     k = 256               # tamanho em bytes do módulo rsa (2048 bits)
     hlen = 32             # tamanho do output da hash em bytes
     mlen = len(cryptogram)   # tamanho da mensagem em bytes
@@ -144,7 +165,7 @@ class RSA:
 
     label = bytes(RSA.String2IntList(label))
     out = RSA.RSACipherDecipher(list(cryptogram), cipherKey)
-    print(out)
+   
     em = bytes(out)
 
     y = em[0]
@@ -168,8 +189,8 @@ class RSA:
 
     if y != 0:
       raise ValueError("Decryption error!")
-    # if label_hash != hashlib.sha3_256(label):
-    #   raise ValueError("Decryption error!")
+    if label_hash != hashlib.sha3_256(label).digest():
+      raise ValueError("Decryption error!")
     if flag is False:
       raise ValueError("Decryption error!")
 
