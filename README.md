@@ -1,4 +1,4 @@
-# vigenereCipher
+# Gerador de assinaturas RSA e AES
 
 ### Dados dos Alunos: 
 João Pedro Felix de Almeida, Matrícula: 19/0015292
