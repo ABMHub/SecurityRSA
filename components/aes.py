@@ -216,9 +216,9 @@ class Aes:
         ctr_blk = (nonce << 32) + 1
 
         pt_bytes = np.array(list(bytes(plaintext, 'utf-8')))
-        pt = pt_bytes[0 : np.size(pt_bytes) - (np.size(pt_bytes) % 128)]
+        pt = pt_bytes[0 : np.size(pt_bytes) - (np.size(pt_bytes) % 16)]
         pt.shape = (np.size(pt)//16, 16)
-        pt_end = pt_bytes[-(np.size(pt_bytes) % 128):]
+        pt_end = pt_bytes[-(np.size(pt_bytes) % 16):]
         
         ct = []
 
