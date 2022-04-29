@@ -23,6 +23,10 @@ Trata-se de um programa para ser utilizado via linha de comando, atenção a for
 
 É necessário informar a mensagem a ser cifrada/decifrada.
 
-Exemplo de uso: `python assinaturas.py nome do arquivo da mensagem>.txt`
+Exemplo de uso: `python assinaturas.py <nome do arquivo da mensagem>.txt`
+
+ou
+
+Exemplo de uso: `python assinaturas.exe <nome do arquivo da mensagem>.txt`
 
 Link do Github: https://github.com/ABMHub/SecurityRSA
