@@ -207,7 +207,7 @@ class Aes:
 
         return state        
 
-    def CtrCipher(self, plaintext : str, nonce : int = generateKey(1, 96)[0]) -> Tuple[List[List[bytes]], int]:
+    def CtrCipher(self, plaintext : str, nonce : int = generateKey(1, 96)[0]) -> Tuple[bytes, int]:
         """ Aplica AES no modo CTR em plaintext
 
         Args:
@@ -242,13 +242,18 @@ class Aes:
             trunc_block = self.AesCipher(counter_block).transpose().flatten()[:np.size(pt_end)]
             ct.append(np.bitwise_xor(pt_end, trunc_block))
 
-        return ct, nonce 
+        ret_bytes = b""
 
-    def CtrDecipher(self, cipher_text : List[List[bytes]], nonce : int) -> str:
+        for i in ct:
+            ret_bytes += bytes(list(i))
+
+        return ret_bytes, nonce 
+
+    def CtrDecipher(self, cipher_text : bytes, nonce : int) -> str:
         """ Decifra uma lista de criptogramas em blocos de 128 bits, o último bloco pode ter menos de 128 bits.
 
         Args:
-            cipher_text (List[List[bytes]]): Lista de criptogramas em que cada elemento é um array numpy que contém 128 bits, o último elemento pode ter menos de 128 bits
+            cipher_text (btyes): Bytes crus referentes a lista de criptogramas em que cada elemento é um array numpy que contém 128 bits, o último elemento pode ter menos de 128 bits
             nonce (int): nonce utilizado durante a cifragem
 
         Returns:
@@ -258,18 +263,24 @@ class Aes:
 
         pt = []
 
-        for i in cipher_text[:-1]:
+        ct_bytes = np.array(list(cipher_text))
+        ct = ct_bytes[0 : np.size(ct_bytes) - (np.size(ct_bytes) % 16)]
+        ct.shape = (np.size(ct)//16, 16)
+        ct_end = ct_bytes[-(np.size(ct_bytes) % 16):]
+
+        for i in ct:
             # i é uma array numpy
 
             counter_block = self.__numberToMatrix128(ctr_blk)
             pt += list(np.bitwise_xor(i, self.AesCipher(counter_block).transpose().flatten()))
             ctr_blk += 1
 
-        counter_block = self.__numberToMatrix128(ctr_blk)
-        trunc_block = self.AesCipher(counter_block).transpose().flatten()[:np.size(cipher_text[-1])]
-        pt += list(np.bitwise_xor(cipher_text[-1], trunc_block))
+        if np.size(ct_end) != 128:
+            counter_block = self.__numberToMatrix128(ctr_blk)
+            trunc_block = self.AesCipher(counter_block).transpose().flatten()[:np.size(ct_end)]
+            pt += list(np.bitwise_xor(ct_end, trunc_block))
 
-        return bytes(pt).decode('utf-8')
+        return bytes(pt).decode("utf-8")
     
     def GaloisMultiply(self, a : int, b : int) -> int:
         """Realiza a multiplicação de a por b no corpo de galois.
