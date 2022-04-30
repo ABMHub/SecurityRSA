@@ -18,7 +18,7 @@ def main(argv):
         help()
         sys.exit(0)
 
-    with open(argv[0], "r") as f:
+    with open(argv[0], "r", encoding="utf-8") as f:
       message = f.read()
     # passo 1: par de chaves pública e privada para o RSA
     luscas = RSA() 
@@ -44,7 +44,7 @@ def main(argv):
     # passo 8: formatar o resultado (aes_ciphered_key, message_hash, message_cipher, nonce) em base64
 
     b64_hash_encoded = base64.b64encode(dumps(criptograma))
-    b64_message_encoded = base64.b64encode(dumps(message_cipher))
+    b64_message_encoded = base64.b64encode(message_cipher)
     b64_sessionKey_encoded = base64.b64encode(dumps(aes_ciphered_key))
 
     with open("sessionKey.bin", "wb") as f:
@@ -62,7 +62,7 @@ def main(argv):
       b64_sessionKey_decoded = f.read()
 
     b64_sessionKey_decoded = loads(base64.b64decode(b64_sessionKey_decoded))
-    b64_message_decoded = loads(base64.b64decode(b64_message_decoded))
+    b64_message_decoded = base64.b64decode(b64_message_decoded)
     b64_hash_decoded = loads(base64.b64decode(b64_hash_decoded))
 
     # passo 9: decifrar a chave de sessão com a chave privada do RSA
